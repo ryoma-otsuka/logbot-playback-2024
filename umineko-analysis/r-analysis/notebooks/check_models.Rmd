@@ -1,0 +1,344 @@
+---
+title: "umineko-2024-audio-playback-logger"
+author: "Ryoma Otsuka"
+date: "15/01/2025"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+## Formula
+Assumption: Y follows Normal distribution.
+- Random effects (random intercept)
+- Probability distribution
+- Linear predictor
+
+$$
+\begin{align}
+    u_{[j]} & \sim \mathcal{N}(0, \sigma_u) \quad (j = 1, 2, \ldots, J) \tag{1} \\
+    Y_{[n]} & \sim \mathcal{N}(\mu_{[n]}, \sigma) \quad (n = 1, 2, \ldots, N) \tag{2} \\
+    \mu_n & = (X \beta)_{[n]} + \alpha + u_{\text{[group}[n]]} \tag{3}
+\end{align}
+$$
+
+Prediction
+$$ 
+Y_{\text{pred}, n} \sim \mathcal{N}(\mu_{\text{pred}, n}, \sigma) \quad (n = 1, 2, \ldots, N_{\text{new}})
+$$ 
+
+## Setup
+```{r setup, include=FALSE}
+source("../src/utils.R")
+setup()
+```
+
+## Config
+```{r}
+model_name = "lmm"
+# model_name = "lmm_st2.2"
+```
+
+## Load models
+```{r}
+fit_list = list()
+sec = 5
+data_type_list = c("s_vedba", "ad_speed", "ad_mpr")
+for (i in 1:length(data_type_list))
+{
+  data_type = data_type_list[[i]]
+  # model
+  fname_base = sprintf("%s_%s_%02ds", model_name, data_type, sec)
+  print(fname_base)
+  model_output_file = sprintf("../output/model-output/%s.RData", fname_base)
+  fit = readRDS(file = model_output_file)
+  fit_list[[i]] = fit
+  rm(fit)
+}
+```
+
+
+## Model diagnosis
+
+### Rhat and divergent transitions
+```{r, fig.width=14, fig.height=5, message=FALSE, warning=FALSE}
+data_type_list = c("s_vedba", "ad_speed", "ad_mpr")
+for (i in 1:length(data_type_list))
+{
+  print(data_type_list[[i]])
+  fit = fit_list[[i]]
+  # Rhat
+  is_ok = check_rhat(fit, threshold_list=c(1.010, 1.005, 1.003))
+  # Divergent transition
+  total_divergent = check_divergent_transitions(fit)
+  rm(fit)
+}
+```
+
+```{r}
+fit = fit_list[[3]] # AD-MPR
+fit_summary = summary(fit, probs = c(0.055, 0.945, 0.025, 0.975, 0.015, 0.985))$summary
+print(round(fit_summary[1:4, ], 5))
+# fit_summary = summary(fit)
+# print(round(fit_summary$summary, 4))
+# print(fit_summary$summary[, "n_eff"])
+```
+
+
+```{r}
+# Beta parameters
+posterior_summary = fit %>%
+  spread_draws(beta[K]) %>%
+  group_by(K) %>%
+  summarise(
+    # mean = mean(beta),
+    median = median(beta),
+    # l_67 = quantile(beta, 0.165),
+    # u_67 = quantile(beta, 0.835),
+    l_89 = quantile(beta, 0.055),
+    u_89 = quantile(beta, 0.945),
+    # l_95 = quantile(beta, 0.025),
+    # u_95 = quantile(beta, 0.975),
+    l_97 = quantile(beta, 0.015),
+    u_97 = quantile(beta, 0.985)
+  )
+print(round(posterior_summary, 5))
+# K = 1: audio type (0: noise, 1: predator)
+# K = 2: location (0: non-offshore, 1: offshore)
+# K = 3: body mass (scaled)
+# K = 4: number of playbacks per audio type (scaled)
+```
+
+
+### Trace plot
+```{r, fig.width=14, fig.height=5, message=FALSE, warning=FALSE}
+for (i in 1:length(fit_list))
+{
+  fit = fit_list[[i]]
+  # parameters = c("alpha", "beta")
+  parameters = c("alpha", "sigma_u", "u")
+  p = vis_traceplot(fit, parameters, ncol=5, inc_warmup=FALSE)
+  rm(fit)
+}
+```
+
+
+### Density
+```{r, fig.width=14, fig.height=5, message=FALSE, warning=FALSE}
+for (i in 1:length(fit_list))
+{
+  fit = fit_list[[i]]
+  # parameters = c("alpha", "beta")
+  parameters = c("alpha", "sigma_u", "u")
+  p = vis_density(fit, parameters, ncol=5, inc_warmup=FALSE, title="Test")
+  rm(fit)
+}
+```
+
+
+```{r, fig.width=14, fig.height=5, message=FALSE, warning=FALSE}
+for (i in 1:length(fit_list))
+{
+  fit = fit_list[[i]]
+  parameters = c("z")
+  plot_list = vis_density(fit, parameters, ncol=4, inc_warmup=FALSE)
+  rm(fit)
+}
+```
+
+
+```{r}
+fit = fit_list[[3]]
+alpha_samples = extract(fit)$alpha
+n_mcmc_samples = length(alpha_samples)
+num_alpha_greater_than_zero = sum(alpha_samples > 0)
+print(n_mcmc_samples)
+print(num_alpha_greater_than_zero)
+print(num_alpha_greater_than_zero/n_mcmc_samples * 100)
+```
+
+
+```{r, fig.width=14, fig.height=5, message=FALSE, warning=FALSE}
+model_name = "lmm"
+data_type = "ad_mpr"
+sec = 5
+fname_base = sprintf("%s_%s_%02ds", model_name, data_type, sec)
+model_output_file = sprintf("../output/model-output/%s.RData", fname_base)
+print(model_output_file)
+fit = readRDS(file = model_output_file)
+# print(fit)
+parameters = c("alpha", "u", "sigma_u")
+p = vis_density(fit, parameters, ncol=5, inc_warmup=FALSE)
+print(p)
+# ggsave(plot=p, filename=sprintf("output/figure/alpha_u_sigma_u_%s_%02d_sec.png", model_name, sec), dpi=350)
+# ggsave(plot=p, filename=sprintf("output/figure/alpha_u_sigma_u__%s_%02d_sec.svg", model_name, sec))
+```
+
+
+```{r, fig.width=14, fig.height=5, message=FALSE, warning=FALSE}
+model_name = "lmm_st2.2"
+data_type = "ad_mpr"
+sec = 5
+fname_base = sprintf("%s_%s_%02ds", model_name, data_type, sec)
+model_output_file = sprintf("../output/model-output/%s.RData", fname_base)
+fit = readRDS(file = model_output_file)
+# print(fit)
+parameters = c("alpha", "u", "sigma_u")
+p = vis_density(fit, parameters, ncol=5, inc_warmup=FALSE)
+print(p)
+# ggsave(plot=p, filename=sprintf("output/figure/alpha_u_sigma_u_%s_%02d_sec.png", model_name, sec), dpi=350)
+# ggsave(plot=p, filename=sprintf("output/figure/alpha_u_sigma_u__%s_%02d_sec.svg", model_name, sec))
+```
+
+### Posterior predictive checks
+```{r, fig.width=13, fig.height=4}
+plot_list = list()
+sec = 5
+data_type_list = c("s_vedba", "ad_speed", "ad_mpr")
+for (i in 1:length(data_type_list))
+{
+  data_type = data_type_list[[i]]
+  
+  # data
+  fname_base = sprintf("%s_%02ds", data_type, sec)
+  path = sprintf("../data/mean/%s.csv", fname_base)
+  print(path)
+  df = read.csv(path)
+  df = subset(df, audio_file_name != "Cancelled") # filtering
+  Y = as.vector(df$diff_value)
+  
+  # model
+  fit = fit_list[[i]]
+  
+  # prediction
+  if (data_type == "s_vedba")
+  {
+    title = "S-VeDBA"
+    x_lim = c(-0.5, 0.5)
+  } else if (data_type == "ad_speed")
+  {
+    title = "AD-Speed"
+    x_lim = c(-3.0, 3.0)
+  } else if (data_type == "ad_mpr")
+  {
+    title = "AD-MPR"
+    x_lim = c(-0.03, 0.03)
+  }
+  
+  plot_list[[i]] = vis_posterior_predictive_check(fit, Y, title, I=46) +
+    xlim(x_lim) +
+    theme(axis.title.y = element_text(margin = margin(r = 30))) +
+    theme(plot.margin = unit(c(5, 10, 5, 5), "mm")) +
+    NULL
+  rm(fit)
+}
+
+p1 = plot_list[[1]]
+p2 = plot_list[[2]]
+p3 = plot_list[[3]]
+
+p = cowplot::plot_grid(
+  p1, p2, p3,
+  labels = c("(a)", "(b)", "(c)"),   # Add labels to the plots
+  label_size = 18,                   # Set font size for labels
+  nrow = 1, ncol = 3,                # Define layout as 1 row, 3 columns
+  label_x = c(-0.03, -0.03, -0.03),  # Adjust x positions of labels
+  label_y = c(1.03, 1.03, 1.03),     # Adjust y positions of labels
+  align = "hv"                       # Align horizontally and vertically
+)
+
+# Apply additional styling to the combined plot
+p = p + theme(
+  plot.margin = margin(7, 5, 5, 5, unit = "mm"),             # Adjust plot margins
+  plot.background = element_rect(fill = "white", color = NA) # Set background color as white
+)
+
+print(p)
+# ggsave(plot=p, filename=sprintf("output/figure/prediction_check_%s_%02d_sec.png", model_name, sec), dpi=350)
+# ggsave(plot=p, filename=sprintf("output/figure/prediction_check_%s_%02d_sec.svg", model_name, sec))
+```
+
+
+## Posterior distribution
+```{r, fig.width=13, fig.height=6}
+plot_list = list()
+sec = 5
+data_type_list = c("s_vedba", "ad_speed", "ad_mpr")
+for (i in 1:length(data_type_list))
+{
+  data_type = data_type_list[[i]]
+  fit = fit_list[[i]]
+  plot_list[[i]] = vis_slope_posteriors(fit, data_type=data_type) +
+    theme(axis.title.y = element_text(margin = margin(r = 30))) +
+    theme(plot.margin = unit(c(5, 10, 5, 5), "mm")) +
+    NULL
+  rm(fit)
+}
+
+p1 = plot_list[[1]]
+p2 = plot_list[[2]]
+p3 = plot_list[[3]]
+
+p = cowplot::plot_grid(
+  p1, p2, p3,
+  labels = c("(a)", "(b)", "(c)"),   # Add labels to the plots
+  label_size = 18,                   # Set font size for labels
+  nrow = 1, ncol = 3,                # Define layout as 1 row, 3 columns
+  label_x = c(-0.03, -0.03, -0.03),  # Adjust x positions of labels
+  label_y = c(1.03, 1.03, 1.03),     # Adjust y positions of labels
+  align = "hv"                       # Align horizontally and vertically
+)
+
+# Apply additional styling to the combined plot
+p = p + theme(
+  plot.margin = margin(7, 5, 5, 5, unit = "mm"),             # Adjust plot margins
+  plot.background = element_rect(fill = "white", color = NA) # Set background color as white
+)
+
+print(p)
+
+# ggsave(plot=p, filename=sprintf("output/figure/posteriors_%s_%02d_sec.png", model_name, sec), dpi=350)
+# ggsave(plot=p, filename=sprintf("output/figure/posteriors_%s_%02d_sec.svg", model_name, sec))
+
+```
+
+
+## Frequentist approach
+```{r}
+library(lme4)
+library(lmerTest)
+
+sec = 5
+# data_type_list = c("s_vedba", "ad_speed", "ad_mpr")
+data_type_list = c("ad_mpr")
+for (i in 1:length(data_type_list))
+{
+  # load data
+  data_type = data_type_list[[i]]
+  fname_base = sprintf("%s_%02ds", data_type, sec)
+  path = sprintf("../data/mean/%s.csv", fname_base)
+  print(path)
+  df = read.csv(path)
+  df = subset(df, audio_file_name != "Cancelled") # filtering
+  # scaling
+  df$pb_count = scale(df$pb_count)
+  df$pb_count_2 = scale(df$pb_count_2)
+  df$body_mass = scale(df$body_mass)
+  # print(df)
+  
+  model = lmer(diff_value ~ audio_file_name + AM_PM + location2 + pb_count_2 + body_mass + (1|test_id), data = df)
+  # model = lme4::lmer(diff_value ~ audio_file_name + AM_PM + location2 + pb_count_2 + body_mass + (1|test_id) + (1+pb_count_2|test_id), data=df)
+  print(summary(model))
+}
+```
+
+```{r}
+library(glmmTMB)
+model = glmmTMB::glmmTMB(
+  diff_value ~ audio_file_name + AM_PM + location2 + pb_count_2 + body_mass + (1|test_id), 
+  data = df, 
+  family = "gaussian"
+)
+print(summary(model))
+```
+

@@ -1,0 +1,77 @@
+## Setup
+```{r setup, include=FALSE}
+source("../src/utils.R")
+setup()
+```
+
+
+```{r, fig.width=4, fig.height=3}
+I = 1000
+sd_list = c(1, 2, 3, 5, 10)
+for (i in 1:length(sd_list))
+{
+  normal_samples = rnorm(I, mean = 0, sd = sd_list[[i]])
+  p = ggplot() +
+    geom_density(mapping=aes(x=normal_samples), color="skyblue", linewidth=1.5) +
+    labs(title=sprintf("sd = %d", sd_list[[i]])) + 
+    theme(panel.grid.major.x = element_line(colour = "grey80")) +
+    theme(panel.grid.minor.x = element_line(colour = "grey90")) +
+    NULL
+    
+  print(p)
+}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+I = 200
+normal_samples = rnorm(I, mean = 0, sd = 1)
+t_samples_1 = rt(I, df=1.0) # Cauchy distribution
+t_samples_2 = rt(I, df=2)
+t_samples_2_2 = rt(I, df=2.2)
+t_samples_4 = rt(I, df=4)
+t_samples_8 = rt(I, df=8)
+data_list = c()
+data_list[[1]] = normal_samples
+data_list[[2]] = t_samples_1
+data_list[[3]] = t_samples_2
+data_list[[4]] = t_samples_2_2
+data_list[[5]] = t_samples_4
+data_list[[6]] = t_samples_8
+print(length(data_list))
+```
+
+
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE}
+for (i in 1:length(data_list))
+{
+  data = data_list[[i]]
+  p = ggplot() + geom_density(mapping=aes(x=data))
+  print(p)
+}
+```
+
+
+```{r, fig.width=6, fig.height=3, message=FALSE, warning=FALSE}
+df_st = data.frame(
+  value = c(t_samples_1, t_samples_2, t_samples_2_2, t_samples_4, t_samples_8),
+  distribution = rep(c("Student-t (df=1)", "Student-t (df=2)", "Student-t (df=2.2)", "Student-t (df=4)", "Student-t (df=8)"), each = I)
+)
+head(df_st)
+p = ggplot(df_st, aes(x=value, color=distribution)) +
+  geom_density(size=0.5) + 
+  coord_cartesian(xlim=c(-50, 50)) +
+  NULL
+print(p)
+```
+
+
+
