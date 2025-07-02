@@ -2,7 +2,7 @@
 
 This is a repository for the paper titled "Real-time behaviour recognition on bio-loggers enables autonomous audio playback experiments in free-ranging seabirds".  
 
-<img src="images/fig_01_overview_v2.0.4_h1200.png" alt="Fig. 1" title="Fig. 1" width="480" />
+<img src="images/fig_01_overview_v2.0.4_h1200.png" alt="Fig. 1" title="Fig. 1" width="600" />
 <p><strong>Figure 1 (from the paper):</strong> Conceptual overview of autonomous audio playback experiment system using bio-loggers attached to seabirds.</p>
 
 <!-- <img src="images/fig_01_overview_v2.0.4_h1200.png" alt="Fig. 1" title="Fig. 1" style="width: 60%;" />
@@ -101,7 +101,7 @@ run_causal_impact.R
 
 ## umineko-segment
 
-<img src="images/fig_s03_segmentation_mask_h1200.png" alt="Fig. S3" title="Fig. S3" width="480"/>
+<img src="images/fig_s03_segmentation_mask_h1200.png" alt="Fig. S3" title="Fig. S3" width="540"/>
 <p><strong>Figure S3 (from the paper):</strong> Example of image segmentation using the custom-trained model (detecting the head and neck of black-tailed gulls).</p>
 
 <!-- <img src="images/fig_s03_segmentation_mask_h1200.png" alt="Fig. S3" title="Fig. S3" style="width: 100%; max-width: 600px;" />
