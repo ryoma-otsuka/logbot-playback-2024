@@ -1,0 +1,1 @@
+//192.168.7.163/hoge/ /mnt/nfs_p/ cifs vers=3.0,username=hoge,password=hoge240,rw,uid=1000,gid=1000,defaults 0 0

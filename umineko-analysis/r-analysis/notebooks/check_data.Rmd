@@ -1,0 +1,203 @@
+---
+title: "umineko-2024-audio-playback-logger"
+author: "Ryoma Otsuka"
+date: "15/01/2025"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+## Setup
+```{r setup, include=FALSE}
+source("../src/utils.R")
+setup()
+```
+
+
+## Data | 
+```{r, fig.width=13, fig.height=4.2, message=FALSE, warning=FALSE}
+# source("../src/utils.R")
+# setup()
+sec = 5
+slope_list = list()
+data_type_list = c("s_vedba", "ad_speed", "ad_mpr")
+for (i in 1:length(data_type_list))
+{
+  data_type = data_type_list[[i]]
+  
+  #### Data ####
+  fname_base = sprintf("%s_%02ds", data_type, sec)
+  path = sprintf("../data/mean/%s.csv", fname_base)
+  print(path)
+  df = read.csv(path)
+  df = subset(df, audio_file_name != "Cancelled") # filtering
+  Y = df$diff_value
+  
+  #### Slope plot ####
+  # slope plot
+  df2 = prep_df2_for_slope_plot(df)
+  # print(df2)
+  p_slope = vis_slope_plot(df2, x_labels=c("Pre", "Post"))
+  p_slope = p_slope +
+    theme(panel.grid.major.x = element_blank()) +
+    theme(panel.grid.minor.x = element_blank()) +
+    theme(axis.title.y = element_text(margin = margin(r = 30))) +
+    theme(plot.margin = unit(c(5, 15, 5, 5), "mm")) +
+    NULL
+  slope_list[[i]] = p_slope
+  # print(p_slope)
+}
+
+p1 = slope_list[[1]]
+p2 = slope_list[[2]]
+p3 = slope_list[[3]]
+
+p = cowplot::plot_grid(
+  p1, p2, p3,
+  labels = c("(a)", "(b)", "(c)"),        # Labels for each plot
+  nrow = 1, ncol = 3,                     # Arrange in 1 row, 3 columns
+  label_x = c(-0.03, -0.03, -0.03),       # Adjust x positions of labels
+  label_y = c(1.03, 1.03, 1.03),          # Adjust y positions of labels
+  label_size = 18,                        # Font size for labels
+  align = "hv",                           # Horizontal and vertical alignment
+  rel_heights = c(1, 1, 1.5)              # Set relative heights for the plots
+) + theme(
+  plot.margin = margin(15, 10, 10, 10, unit = "mm"),  # Adjust plot margins
+  plot.background = element_rect(fill = "white", color = NA)  # Set background color to white
+)
+
+print(p)
+# ggsave(plot=p, filename=sprintf("test.png"), width=13, height=4.2, dpi=150)
+```
+
+## Data | Response variables
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE}
+sec = 5
+data_type_list = c("s_vedba", "ad_speed", "ad_mpr")
+hist_list = c()
+dens_list = c()
+for (i in 1:length(data_type_list)) 
+{
+  data_type = data_type_list[[i]]
+  if (data_type == "s_vedba")
+  {
+    title = "S-VeDBA"
+  } else if (data_type == "ad_speed")
+  {
+    title = "AD-Speed"
+  } else if (data_type == "ad_mpr")
+  {
+    title = "AD-MPR"
+  }
+  fname_base = sprintf("%s_%02ds", data_type, sec)
+  path = sprintf("../data/mean/%s.csv", fname_base)
+  print(path)
+  df = read.csv(path)
+  df = subset(df, audio_file_name != "Cancelled") # filtering
+  print(unique(df$test_id))
+  df_raw = df
+  print(df)
+  p = ggplot(data=df, mapping=aes(x=diff_value)) +
+    geom_histogram(biss = 10, fill = "#56B4E9", color = "transparent", alpha=0.75) +
+    labs(title=title, x="Y", y="Count") +
+    scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+    theme(axis.title.y = element_text(margin = margin(r = 30))) +
+    theme(plot.margin = unit(c(5, 15, 5, 5), "mm")) +
+    theme(plot.title = element_text(hjust = 0.5, margin = margin(b = 10))) +
+    NULL
+  print(p)
+  hist_list[[i]] = p
+  p = ggplot(data=df, mapping=aes(x=diff_value)) +
+    geom_density(fill = "#009E73", alpha=0.2, color = "#009E73", size=0.5) +
+    labs(title=title, x="Y", y="Density") +
+    theme(axis.title.y = element_text(margin = margin(r = 30))) +
+    theme(plot.margin = unit(c(5, 15, 5, 5), "mm")) +
+    theme(plot.title = element_text(hjust = 0.5, margin = margin(b = 10))) +
+    NULL
+  print(p)
+  dens_list[[i]] = p
+  print(sprintf("Number of zero values: %d", sum(df$diff_value == 0)))
+}
+```
+
+
+
+## Explanatory variables
+Note that regardless of the response variable, the explanatory variables remain the same. 
+```{r}
+print(unique(df$audio_file_name))
+print(unique(df$AM_PM))
+print(unique(df$location))
+print(unique(df$location2))
+```
+
+```{r}
+print(unique(df$pb_count)) # total count
+print(unique(df$pb_count_2)) # count by audio data
+```
+
+```{r}
+print(unique(df$body_mass))
+```
+
+```{r}
+# df
+print(head(df))
+
+# scaling
+df$pb_count = scale(df$pb_count)
+df$pb_count_2 = scale(df$pb_count_2)
+df$body_mass = scale(df$body_mass)
+
+# Response variable
+Y = as.vector(df$diff_value)
+
+# Explanatory variables
+X_tmp = model.matrix(
+  object = ~ audio_file_name + location2 + body_mass + pb_count_2, data = df
+)
+X = X_tmp[, -c(1)] # remove a column with 1s for intercept
+print("X")
+print(head(X))
+# print(str(X))
+colnames(X) = paste0("X", 1:ncol(X))
+print("X (column names changed)")
+print(head(X))
+```
+
+## Pair plot
+```{r, fig.width=10, fig.height=8}
+library(GGally)
+df_ggp = df_raw[, c("audio_file_name", "AM_PM", "location2", "pb_count_2", "body_mass")]
+head(df_ggp)
+colnames(df_ggp) = c("Audio", "Time (AM/PM)", "Location", "Playback Count", "BM")
+df_ggp$Audio <- factor(df_ggp$Audio, levels = c("Predator", "Noise"))
+
+ggp = ggpairs(
+  df_ggp,
+  mapping = aes(color = Audio),
+  alpha=0.5,
+  upper = list(discrete = "facetbar"),
+  diag = list(continuous="barDiag"),
+) +
+  scale_color_manual(values=c("#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  theme_bw()
+for (i in 1:ggp$nrow) {
+  for (j in 1:ggp$ncol) {
+    if (i == 5 | (i == 4 & j <= 3)) {
+      ggp[i, j] = ggp[i, j] + 
+        scale_x_continuous(
+          breaks = scales::pretty_breaks(n = 5), 
+          labels = scales::label_number(accuracy = 1)) +
+        scale_y_continuous(
+          breaks = scales::pretty_breaks(n = 5), 
+          labels = scales::label_number(accuracy = 1))
+    }
+  }
+}
+print(ggp)
+```
+
+

@@ -1,0 +1,246 @@
+# CausalImpact
+
+
+## Package
+```{r}
+# install.packages("CausalImpact")
+library(CausalImpact)
+```
+
+
+## Config
+```{r}
+# data_type = "smoothed_VeDBA_2s" # S-VeDBA
+data_type = "abs_diff_distance_m" # AD-Speed
+# data_type = "abs_diff_pixel_count_p" # AD-MPR
+
+run_id = "run-00"
+# run_id = "run-01"
+
+# session_name = "LBP01_S00"
+session_name = "LBP03_S00"
+
+base_dir = sprintf("../data/ci-data/%s/%s/%s", run_id, data_type, session_name)
+print(base_dir)
+  
+output_save_dir = sprintf("../../output/causal-impact/%s/%s/%s", run_id, data_type, session_name)
+if (!dir.exists(output_save_dir)) {
+  dir.create(output_save_dir, recursive = TRUE)  # recursive = TRUEは親ディレクトリも同時に作成可能にするオプション
+  cat("Directory created:", output_save_dir, "\n")
+} else {
+  cat("Directory already exists:", output_save_dir, "\n")
+}
+```
+
+## Data
+```{r}
+# data
+data_path = sprintf("%s/data.csv", base_dir)
+data = read.csv(data_path)
+
+# periods
+periods_path = sprintf("%s/periods.csv", base_dir)
+periods = read.csv(periods_path)
+pre_period = periods$pre_period
+post_period = periods$post_period
+
+# Python index start from zero while R index start from 1
+pre_period = pre_period + c(1, 1)
+post_period = post_period + c(1, 1)
+
+# check
+print(head(data))
+print(pre_period)
+print(post_period)
+```
+
+
+
+## Run
+```{r}
+impact = CausalImpact(data, pre_period, post_period, alpha=0.03)
+```
+
+
+```{r}
+print(str(impact$series))
+
+```
+
+```{r}
+head(impact$series)
+write.csv(impact$series, file=sprintf("%s/df_ci_r.csv", output_save_dir))
+```
+
+
+```{r}
+print(impact$summary)
+```
+
+```{r}
+print(impact$model)
+```
+
+
+```{r}
+print(impact$report)
+```
+
+
+## Plot
+```{r, fig.width=5, fig.height=5}
+p = plot(impact)
+print(p)
+```
+
+
+## Original plot
+```{r, fig.width=14, fig.height=12}
+source("src/ci_plot.R")
+session_name = "LBP03_S00"
+.session_name <- gsub("_", " ", session_name)
+data_title = "AD-MPR"
+p = plot_causal_impact(impact, title=sprintf("%s | %s", .session_name, data_title))
+p = p +
+  # xlim(x_lim) +
+  theme(axis.title.y = element_text(margin = margin(r = 5))) +
+  theme(plot.margin = unit(c(5, 10, 5, 5), "mm")) +
+  NULL
+# print(p)
+
+p1 = p
+p2 = p
+p3 = p
+
+p = cowplot::plot_grid(
+  p1, p2, p3, p1, p2, p3,
+  labels = c("(a)", "(b)", "(c)", "(d)", "(e)", "(f)"),  # Labels for each plot
+  nrow = 2, ncol = 3,                                    # Arrange in 2 rows, 3 columns
+  label_x = c(-0.03, -0.03, -0.03, -0.03, -0.03, -0.03), # Adjust x positions of labels
+  label_y = c(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),             # Adjust y positions of labels
+  label_size = 18,                                       # Font size for labels
+  align = "hv",                                          # Horizontal and vertical alignment
+  rel_heights = c(1, 1)                                  # Set relative heights for the plots
+) + theme(
+  plot.margin = margin(8, 5, 5, 5, unit = "mm"),              # Adjust plot margins
+  plot.background = element_rect(fill = "white", color = NA)  # Set background color to white
+)
+
+print(p)
+```
+
+## Summary
+```{r}
+summary(impact)
+```
+
+
+```{r}
+summary(impact, "report")
+```
+
+
+## Handling all zeros iussue
+
+### Original data
+```{r, fig.width=4, fig.height=2}
+data_type = "abs_diff_pixel_count_p" # AD-MPR
+session_name = "LBP03_S00"
+
+# data
+data_path = sprintf("%s/data.csv", base_dir)
+data = read.csv(data_path)
+
+# periods
+periods_path = sprintf("%s/periods.csv", base_dir)
+periods = read.csv(periods_path)
+pre_period = periods$pre_period
+post_period = periods$post_period
+
+# Python index start from zero while R index start from 1
+pre_period = pre_period + c(1, 1)
+post_period = post_period + c(1, 1)
+
+# check
+print(head(data))
+print(pre_period)
+print(post_period)
+
+# すべてゼロだとCausalImpactの推定ができないので、ごく小さな値を足すことにする。
+t = seq(0, length(data$y)-1, by = 1)
+
+# オリジナルデータ
+p = ggplot(data) +
+  geom_line(aes(x=t, y=y))
+print(p)
+
+vec = as.vector(data$y[pre_period[1]:pre_period[2]])
+all_zero = all(vec == 0)
+print(sprintf("all_zero?: %s", all_zero))
+```
+
+```{r}
+# This does not work
+impact = CausalImpact(data, pre_period, post_period)
+# Warning in ObservationsAreIllConditioned(y) :
+#   Aborting inference due to input series being constant: 0
+```
+
+### Let's add very small value
+```{r, fig.width=4, fig.height=2}
+# ごく小さな値を足した場合のデータを作る
+data2 = data
+set.seed(558)
+random_pre_index = sample(pre_period[1]:pre_period[2], 1)
+print(random_pre_index)
+# very_small_value = runif(1, min = 0, max = 0.00001)
+very_small_value = 0.0000001
+data2$y[random_pre_index] = data2$y[random_pre_index] + very_small_value
+p2 = ggplot(data2) +
+  geom_line(aes(x=t, y=y))
+print(p2)
+
+pre_data2 = data2$y[pre_period[1]:pre_period[2]]
+vec = as.vector(pre_data2)
+all_zero = all(vec == 0)
+print(sprintf("all_zero?: %s", all_zero))
+print(sum(pre_data2))
+```
+
+```{r}
+# This works fine
+impact2 = CausalImpact(data2, pre_period, post_period)
+```
+
+```{r, fig.width=5, fig.height=5}
+source("src/ci_plot.R")
+.session_name = "LBP03 S00"
+data_title = "AD-MPR"
+p = plot_causal_impact(impact2, title=sprintf("%s | %s", .session_name, data_title))
+print(p)
+```
+
+
+
+## Path
+```{r}
+parent_dir = sprintf("../data/ci-data/%s/%s", run_id, data_type)
+data_path_list = Sys.glob(file.path(parent_dir, "*/data.csv"))
+period_path_list = Sys.glob(file.path(parent_dir, "*/periods.csv"))
+print(data_path_list[11])
+print(period_path_list[11])
+print(length(data_path_list))
+print(length(period_path_list))
+
+data_path_list
+```
+
+```{r}
+parent_dir = sprintf("../data/ci-data/%s/%s", run_id, data_type)
+# session_id_list = Sys.glob(file.path(parent_dir, "*"))
+session_paths = Sys.glob(file.path(parent_dir, "*"))
+session_id_list = basename(session_paths[file.info(session_paths)$isdir])
+print(session_id_list)
+```
+
+

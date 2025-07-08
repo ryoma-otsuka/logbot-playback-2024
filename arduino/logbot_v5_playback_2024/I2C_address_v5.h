@@ -1,0 +1,8 @@
+// I2C addresses used in logbot-v5 for I2C connection
+#define BMI270_SLAVE_ADDRESS    0x68 // BMI-270
+#define BMM150_SLAVE_ADDRESS    0x10 // BMM-150
+#define WPT_MS5837_ADDRESS      0x76 // MS583730BA01-50
+#define ILL_BH1721FVC_ADDRESS   0x23 // BH1721FVC // not 0x43
+#define ATM_LPS22HB_ADDRESS     0x5C // LPS22HB
+#define RTC_RX8564_ADDRESS      0x51 // RX-8564LC
+#define U_BLOX_ZOE_M8Q_ADDRESS  0x42 // ZOE-M8Q

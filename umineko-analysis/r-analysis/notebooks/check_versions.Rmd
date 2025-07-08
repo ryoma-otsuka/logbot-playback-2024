@@ -1,0 +1,21 @@
+# Check version
+
+```{r}
+print(R.version)
+print(citation())
+```
+
+```{r}
+library(rstan)
+print(sprintf("Stan version %s", rstan::stan_version()))
+```
+
+
+```{r}
+print(sprintf("RStan version %s", packageVersion("rstan")))
+```
+
+```{r}
+print(sprintf("CausalImpact version %s", packageVersion("CausalImpact")))
+```
+
