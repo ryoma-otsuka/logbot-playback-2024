@@ -12,13 +12,11 @@ This is a repository for the paper titled "Real-time behaviour recognition on bi
 **Figure 1 (from the paper): Conceptual overview of autonomous audio playback experiment system using bio-loggers attached to seabirds.** -->
 
 ## Author
-Author Name
-[Website](https://author) | [GitHub](https://github.com/author) | [Google Scholar](URL) | [Researchmap](URL) 
+Ryoma Otsuka  
+[Website](https://ryoma-otsuka.github.io/) | [GitHub](https://github.com/ryoma-otsuka) | [Google Scholar](https://scholar.google.com/citations?user=TzrgGqEAAAAJ&hl=en) | [Researchmap](URL) 
 
 ## Paper
-> Otsuka et al., (2025) "Real-time behaviour recognition on bio-loggers enables autonomous audio playback experiments in free-ranging seabirds." *Journal Name (TBA)*. 
-
-published paper: [URL (TBA)]()
+> Otsuka, R., Sugiyama, H., Mizutani, Y., Yoda, K., & Maekawa, T. (2025). Real-Time Behaviour Recognition on Bio-Loggers Enables Autonomous Audio Playback Experiments in Free-Ranging Seabirds. Ecology and Evolution, 15(8), e71832. https://doi.org/10.1002/ece3.71832
 
 ## Overview
 The repository includes 3 directories below.
