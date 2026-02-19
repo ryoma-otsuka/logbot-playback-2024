@@ -3,9 +3,13 @@ c.NotebookApp.terminado_settings = {
     "shell_args": ["-l"]
 }
 
-c.NotebookApp.password = ""
-c.NotebookApp.token = ""
-c.NotebookApp.disable_check_xsrf = True
-c.NotebookApp.allow_root = True
-c.NotebookApp.open_browser = False
+# Browser and IP settings
 c.NotebookApp.ip = "0.0.0.0"
+c.NotebookApp.open_browser = False
+c.NotebookApp.allow_root = True
+
+# Security settings (Recommended for public release)
+# By default, Jupyter uses a token. 
+# Keeping these commented out encourages safer usage.
+# c.NotebookApp.token = ""
+# c.NotebookApp.password = ""

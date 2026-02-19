@@ -120,7 +120,9 @@ print(p)
 ggsave(plot=p, filename=sprintf("output/figure/fig_03_slope_hist_posteriors_%s_%02d_sec.png", model_name, sec), width=13, height=12.7, dpi=600)
 ggsave(plot=p, filename=sprintf("output/figure/fig_03_slope_hist_posteriors_%s_%02d_sec.svg", model_name, sec), width=13, height=12.7)
 
-save_dir = "C:/Users/ryoma/D/writing/00-first/005_Otsuka_202x_MEE_umineko_playback/otsuka-umineko-playback/illustration/export"
+
+# Change the path to your export directory
+save_dir = "PATH_TO_EXPORT_DIR"
 ggsave(plot=p, filename=sprintf("%s/fig_03_slope_hist_posteriors_%s_%02d_sec.png", save_dir, model_name, sec), width=13, height=12.7, dpi=600)
 ggsave(plot=p, filename=sprintf("%s/fig_03_slope_hist_posteriors_%s_%02d_sec.svg", save_dir, model_name, sec), width=13, height=12.7)
 

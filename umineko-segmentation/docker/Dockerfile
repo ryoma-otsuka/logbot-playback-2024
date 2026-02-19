@@ -1,42 +1,39 @@
-# ベースイメージを指定
+# 1. Base Image: Use NVIDIA CUDA base for GPU support
 FROM nvidia/cuda:11.8.0-base-ubuntu22.04
 
-# 作業ディレクトリを設定
+# 2. Environment Variables: Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set the working directory
 WORKDIR /code
 
-# 必要なパッケージのインストールと設定
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get install -y curl python3 python3-distutils git && \
-    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
-    python3 get-pip.py && \
-    rm get-pip.py
+# 3. System Dependencies: Install essential tools and OpenCV dependencies
+# Combined RUN commands and cleared cache to minimize image size
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    python3 \
+    python3-distutils \
+    git \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py \
+    && python3 get-pip.py \
+    && rm get-pip.py \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# OpenCVの依存関係のインストール
-RUN apt-get update && apt-get install -y ffmpeg libsm6 libxext6
-# - ffmpeg: 動画処理のため
-# - libsm6, libxext6: OpenCVの依存関係
-
-# requirements.txtをコピーし、必要なPythonパッケージをインストール
+# 4. Python Packages: Install requirements
 COPY ./requirements.txt /code/
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Gitの設定
-RUN git config --global user.email "hoge.hoge@gmail.com" && \
-    git config --global user.name "hoge-hoge"
-
-# データストアとデータセット用のボリュームを設定
-VOLUME /mnt/nfs_p
-
-# 作業ディレクトリを設定
-WORKDIR /mnt
-
-# fstabファイルのコピー
-COPY ./fstab /etc/
-
-# Jupyter Notebookの設定ファイルをコピー
+# 5. Configuration: Copy Jupyter Notebook config
+# Personal Git settings and fstab mounting are removed for portability.
+# Users should mount their data volumes at runtime.
 COPY jupyter_notebook_config.py /root/.jupyter/jupyter_notebook_config.py
 
-# デフォルトコマンドを設定
-CMD mount -a & jupyter lab --ip=0.0.0.0 --allow-root --port 8888 --NotebookApp.token='' --no-browser
+# 6. Default Command: Launch Jupyter Lab
+# Token is disabled for convenience in local environments.
+# For security, consider adding a token or password in production.
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root", "--port=8888", "--no-browser"]
